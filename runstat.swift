@@ -14,29 +14,19 @@ class StatusBarController {
         
         // 초기 상태 설정
         let (cpuUsage, memUsage, diskUsage) = getSystemStats()
-        let cpuText = "🖥️ \(String(format: "%.0f", cpuUsage))%"
+        let cpuText = "CPU \(String(format: "%.0f", cpuUsage))%"
         let attributedString = NSMutableAttributedString(string: cpuText)
         
-        // 초기 색상 설정
+        // 초기 텍스트 색상 설정
         let textColor: NSColor
-        let backgroundColor: NSColor
         if cpuUsage >= 80 {
-            textColor = NSColor.white
-            backgroundColor = NSColor.red
-        } else if cpuUsage >= 60 {
-            textColor = NSColor.white
-            backgroundColor = NSColor.orange
-        } else if cpuUsage >= 40 {
-            textColor = NSColor.black
-            backgroundColor = NSColor.yellow
+            textColor = NSColor.red
         } else {
-            textColor = NSColor.white
-            backgroundColor = NSColor.green
+            textColor = NSColor.black
         }
         
-        // 전체 텍스트에 색상과 배경색 적용
+        // 전체 텍스트에 색상 적용
         attributedString.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedString.length))
-        attributedString.addAttribute(.backgroundColor, value: backgroundColor, range: NSRange(location: 0, length: attributedString.length))
         statusItem.button?.attributedTitle = attributedString
         
         statusItem.button?.toolTip = """
@@ -63,29 +53,19 @@ class StatusBarController {
             let (cpuUsage, memUsage, diskUsage) = self.getSystemStats()
             
             // CPU 사용률에 따른 색상 적용
-            let cpuText = "🖥️ \(String(format: "%.0f", cpuUsage))%"
+            let cpuText = "CPU \(String(format: "%.0f", cpuUsage))%"
             let attributedString = NSMutableAttributedString(string: cpuText)
             
-            // CPU 사용률에 따른 색상 결정
+            // CPU 사용률에 따른 텍스트 색상 결정
             let textColor: NSColor
-            let backgroundColor: NSColor
             if cpuUsage >= 80 {
-                textColor = NSColor.white
-                backgroundColor = NSColor.red        // 빨간 배경 - 위험
-            } else if cpuUsage >= 60 {
-                textColor = NSColor.white
-                backgroundColor = NSColor.orange     // 주황 배경 - 경고
-            } else if cpuUsage >= 40 {
-                textColor = NSColor.black
-                backgroundColor = NSColor.yellow     // 노란 배경 - 주의
+                textColor = NSColor.red        // 빨간색 - 위험
             } else {
-                textColor = NSColor.white
-                backgroundColor = NSColor.green      // 초록 배경 - 정상
+                textColor = NSColor.black      // 검정색 - 정상
             }
             
-            // 전체 텍스트에 색상과 배경색 적용
+            // 전체 텍스트에 색상 적용
             attributedString.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedString.length))
-            attributedString.addAttribute(.backgroundColor, value: backgroundColor, range: NSRange(location: 0, length: attributedString.length))
             self.statusItem.button?.attributedTitle = attributedString
             
             let tooltip = """
