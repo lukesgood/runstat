@@ -1,0 +1,7 @@
+.DS_Store
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+build/
+DerivedData/
+*.app/Contents/_CodeSignature/
+*.dSYM/
