@@ -47,32 +47,9 @@ jobs:
         zip -r runstat.app.zip runstat.app
     
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-    
-    - name: Upload App Bundle
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./runstat.app.zip
-        asset_name: runstat.app.zip
-        asset_content_type: application/zip
-    
-    - name: Upload Binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./runstat
-        asset_name: runstat
-        asset_content_type: application/octet-stream
+        files: |
+          runstat.app.zip
+          runstat
+        generate_release_notes: true
