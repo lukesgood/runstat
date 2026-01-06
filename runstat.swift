@@ -5,6 +5,7 @@ class StatusBarController {
     private var statusItem: NSStatusItem
     private var timer: Timer?
     private var menu: NSMenu
+    private var isShowingDetails = false
     
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -12,36 +13,24 @@ class StatusBarController {
         setupMenu()
         statusItem.menu = menu
         
-        // 초기 상태 설정
-        let (cpuUsage, memUsage, diskUsage) = getSystemStats()
-        let cpuText = "CPU \(String(format: "%.0f", cpuUsage))%"
-        let attributedString = NSMutableAttributedString(string: cpuText)
+        // Add click action
+        statusItem.button?.action = #selector(statusItemClicked)
+        statusItem.button?.target = self
         
-        // 초기 텍스트 색상 설정
-        let textColor: NSColor
-        if cpuUsage >= 80 {
-            textColor = NSColor.red
-        } else {
-            textColor = NSColor.black
-        }
-        
-        // 전체 텍스트에 색상 적용
-        attributedString.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedString.length))
-        statusItem.button?.attributedTitle = attributedString
-        
-        statusItem.button?.toolTip = """
-        CPU: \(String(format: "%.1f", cpuUsage))%
-        메모리: \(String(format: "%.1f", memUsage))%
-        디스크: \(String(format: "%.1f", diskUsage))%
-        """
-        
+        // Initial state
+        updateDisplay()
         startMonitoring()
     }
     
     private func setupMenu() {
-        let quitItem = NSMenuItem(title: "종료", action: #selector(quit), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
+    }
+    
+    @objc private func statusItemClicked() {
+        isShowingDetails.toggle()
+        updateDisplay()
     }
     
     @objc private func quit() {
@@ -50,31 +39,36 @@ class StatusBarController {
     
     private func startMonitoring() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            let (cpuUsage, memUsage, diskUsage) = self.getSystemStats()
-            
-            // CPU 사용률에 따른 색상 적용
-            let cpuText = "CPU \(String(format: "%.0f", cpuUsage))%"
-            let attributedString = NSMutableAttributedString(string: cpuText)
-            
-            // CPU 사용률에 따른 텍스트 색상 결정
-            let textColor: NSColor
-            if cpuUsage >= 80 {
-                textColor = NSColor.red        // 빨간색 - 위험
-            } else {
-                textColor = NSColor.black      // 검정색 - 정상
-            }
-            
-            // 전체 텍스트에 색상 적용
-            attributedString.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedString.length))
-            self.statusItem.button?.attributedTitle = attributedString
-            
-            let tooltip = """
-            CPU: \(String(format: "%.1f", cpuUsage))%
-            메모리: \(String(format: "%.1f", memUsage))%
-            디스크: \(String(format: "%.1f", diskUsage))%
-            """
-            self.statusItem.button?.toolTip = tooltip
+            self.updateDisplay()
         }
+    }
+    
+    private func updateDisplay() {
+        let (cpuUsage, memUsage, diskUsage) = getSystemStats()
+        
+        let displayText: String
+        if isShowingDetails {
+            displayText = "CPU \(String(format: "%.0f", cpuUsage))% | MEM \(String(format: "%.0f", memUsage))% | DISK \(String(format: "%.0f", diskUsage))%"
+        } else {
+            displayText = "CPU \(String(format: "%.0f", cpuUsage))%"
+        }
+        
+        let attributedString = NSMutableAttributedString(string: displayText)
+        
+        // Color based on CPU usage
+        let textColor: NSColor = cpuUsage >= 80 ? NSColor.red : NSColor.black
+        attributedString.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedString.length))
+        
+        statusItem.button?.attributedTitle = attributedString
+        
+        // Tooltip with detailed info
+        statusItem.button?.toolTip = """
+        CPU: \(String(format: "%.1f", cpuUsage))%
+        Memory: \(String(format: "%.1f", memUsage))%
+        Disk: \(String(format: "%.1f", diskUsage))%
+        
+        Click to toggle detailed view
+        """
     }
     
     private func getSystemStats() -> (cpu: Double, mem: Double, disk: Double) {
@@ -88,7 +82,7 @@ class StatusBarController {
         var loadAvg = [Double](repeating: 0, count: 3)
         let result = getloadavg(&loadAvg, 3)
         if result > 0 {
-            return min(loadAvg[0] * 25, 100) // 4코어 기준 정규화
+            return min(loadAvg[0] * 25, 100) // Normalize for 4 cores
         }
         return 0
     }

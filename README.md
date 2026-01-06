@@ -9,11 +9,13 @@ macOS menubar system monitor - CPU usage percentage display
 ## Features
 - Real-time CPU, memory, and disk usage monitoring
 - CPU usage percentage display in menubar
+- **Click to toggle detailed view** showing CPU, memory, and disk usage
 - Detailed tooltip on hover (CPU, memory, disk)
 - Supports macOS 10.13 and later
 
 ## Display Format
-- Menubar: CPU usage percentage (e.g., CPU 25%)
+- **Default view**: CPU usage percentage (e.g., CPU 25%)
+- **Detailed view** (click to toggle): CPU 25% | MEM 60% | DISK 45%
 - Color coding:
   - ⚫ Black: 0-79% (normal)
   - 🔴 Red: 80%+ (high usage)
