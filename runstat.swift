@@ -11,11 +11,11 @@ class StatusBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         menu = NSMenu()
         setupMenu()
-        statusItem.menu = menu
         
-        // Add click action
+        // Remove menu initially to allow click action
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.target = self
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         
         // Initial state
         updateDisplay()
@@ -29,8 +29,17 @@ class StatusBarController {
     }
     
     @objc private func statusItemClicked() {
-        isShowingDetails.toggle()
-        updateDisplay()
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp {
+            // Right click - show menu
+            statusItem.menu = menu
+            statusItem.button?.performClick(nil)
+            statusItem.menu = nil
+        } else {
+            // Left click - toggle view
+            isShowingDetails.toggle()
+            updateDisplay()
+        }
     }
     
     @objc private func quit() {
