@@ -1,0 +1,26 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build runstat
+      run: make build
+    
+    - name: Test binary exists
+      run: test -f runstat
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: runstat-binary
+        path: runstat
