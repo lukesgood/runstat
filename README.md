@@ -21,9 +21,16 @@ macOS menubar system monitor - CPU usage percentage display
 
 ## Installation
 
-### Option 1: Homebrew (Recommended)
+### Option 1: Homebrew (Builds from Source)
 ```bash
-brew install --cask runstat
+# Add the tap
+brew tap lukesgood/runstat https://github.com/lukesgood/runstat.git
+
+# Install runstat
+brew install runstat
+
+# Copy to Applications (follow the instructions shown after install)
+cp -r "$(brew --prefix)/runstat.app" /Applications/
 ```
 
 ### Option 2: Direct Download
