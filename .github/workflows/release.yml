@@ -15,7 +15,39 @@ jobs:
     - name: Build runstat
       run: make build
     
+    - name: Create app bundle
+      run: |
+        mkdir -p runstat.app/Contents/MacOS
+        mkdir -p runstat.app/Contents/Resources
+        cp runstat runstat.app/Contents/MacOS/
+        
+        # Create Info.plist
+        cat > runstat.app/Contents/Info.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>runstat</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.runstat</string>
+            <key>CFBundleName</key>
+            <string>runstat</string>
+            <key>CFBundleVersion</key>
+            <string>${{ github.ref_name }}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${{ github.ref_name }}</string>
+            <key>LSUIElement</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+        
+        # Create zip
+        zip -r runstat.app.zip runstat.app
+    
     - name: Create Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,7 +57,17 @@ jobs:
         draft: false
         prerelease: false
     
-    - name: Upload Release Asset
+    - name: Upload App Bundle
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./runstat.app.zip
+        asset_name: runstat.app.zip
+        asset_content_type: application/zip
+    
+    - name: Upload Binary
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
