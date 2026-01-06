@@ -4,47 +4,52 @@
 [![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)](https://swift.org)
 [![macOS](https://img.shields.io/badge/macOS-10.13+-blue.svg)](https://www.apple.com/macos/)
 
-macOS 메뉴바 시스템 모니터 - CPU 사용률 수치 표시
+macOS menubar system monitor - CPU usage percentage display
 
-## 기능
-- 실시간 CPU, 메모리, 디스크 사용률 모니터링
-- 메뉴바에 CPU 사용률 퍼센트 표시
-- 마우스 오버시 상세 정보 툴팁 (CPU, 메모리, 디스크)
-- macOS 10.13 이상 지원
+## Features
+- Real-time CPU, memory, and disk usage monitoring
+- CPU usage percentage display in menubar
+- Detailed tooltip on hover (CPU, memory, disk)
+- Supports macOS 10.13 and later
 
-## 표시 방식
-- 메뉴바: CPU 사용률 퍼센트 (예: CPU 25%)
-- 색상 구분:
-  - ⚫ 검정색: 0-79% (정상)
-  - 🔴 빨간색: 80%+ (위험)
-- 툴팁: CPU, 메모리, 디스크 사용률 상세 정보
+## Display Format
+- Menubar: CPU usage percentage (e.g., CPU 25%)
+- Color coding:
+  - ⚫ Black: 0-79% (normal)
+  - 🔴 Red: 80%+ (high usage)
+- Tooltip: Detailed CPU, memory, and disk usage information
 
-## 설치 방법
+## Installation
 
-### 자동 설치 및 시작 프로그램 등록
+### Automatic Installation and Login Item Registration
 ```bash
 ./install.sh
 ```
 
-### 수동 설치
-1. runstat.app을 Applications 폴더로 복사
-2. Applications에서 runstat 실행
+### Manual Installation
+1. Copy runstat.app to Applications folder
+2. Launch runstat from Applications
 
-### 빌드하기
+### Building from Source
+```bash
+make build
+```
+
+Or using Swift directly:
 ```bash
 swiftc -o runstat runstat.swift
 ```
 
-## 제거 방법
-Applications 폴더에서 runstat.app 삭제
+## Uninstallation
+Delete runstat.app from Applications folder
 
-## 기여하기
-기여를 환영합니다! [CONTRIBUTING.md](CONTRIBUTING.md)를 참고해주세요.
+## Contributing
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-## 라이선스
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## 버전
-- 1.2 - CPU 사용률 수치 직접 표시로 변경
-- 1.1 - runcat 스타일 애니메이션 추가, CPU 반응형 속도 조절
-- 1.0 - 초기 릴리즈
+## Version History
+- 1.2 - Direct CPU usage percentage display
+- 1.1 - Added runcat-style animation with CPU-responsive speed
+- 1.0 - Initial release
