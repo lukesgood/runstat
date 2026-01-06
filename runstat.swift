@@ -45,10 +45,12 @@ class StatusBarController {
     
     private func updateDisplay() {
         let (cpuUsage, memUsage, diskUsage) = getSystemStats()
+        let (memUsed, memTotal) = getMemoryCapacity()
+        let (diskUsed, diskTotal) = getDiskCapacity()
         
         let displayText: String
         if isShowingDetails {
-            displayText = "CPU \(String(format: "%.0f", cpuUsage))% | MEM \(String(format: "%.0f", memUsage))% | DISK \(String(format: "%.0f", diskUsage))%"
+            displayText = "CPU \(String(format: "%.0f", cpuUsage))% | MEM \(formatBytes(memUsed))/\(formatBytes(memTotal)) | DISK \(formatBytes(diskUsed))/\(formatBytes(diskTotal))"
         } else {
             displayText = "CPU \(String(format: "%.0f", cpuUsage))%"
         }
@@ -64,8 +66,8 @@ class StatusBarController {
         // Tooltip with detailed info
         statusItem.button?.toolTip = """
         CPU: \(String(format: "%.1f", cpuUsage))%
-        Memory: \(String(format: "%.1f", memUsage))%
-        Disk: \(String(format: "%.1f", diskUsage))%
+        Memory: \(formatBytes(memUsed)) / \(formatBytes(memTotal)) (\(String(format: "%.1f", memUsage))%)
+        Disk: \(formatBytes(diskUsed)) / \(formatBytes(diskTotal)) (\(String(format: "%.1f", diskUsage))%)
         
         Click to toggle detailed view
         """
@@ -105,6 +107,27 @@ class StatusBarController {
         return 0
     }
     
+    private func getMemoryCapacity() -> (used: UInt64, total: UInt64) {
+        var info = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+        
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+        
+        if result == KERN_SUCCESS {
+            let pageSize = UInt64(vm_kernel_page_size)
+            let totalMem = ProcessInfo.processInfo.physicalMemory
+            let freeMem = UInt64(info.free_count) * pageSize
+            let usedMem = totalMem - freeMem
+            return (usedMem, totalMem)
+        }
+        
+        return (0, ProcessInfo.processInfo.physicalMemory)
+    }
+    
     private func getDiskUsage() -> Double {
         do {
             let url = URL(fileURLWithPath: "/")
@@ -117,6 +140,27 @@ class StatusBarController {
             }
         } catch {}
         return 0
+    }
+    
+    private func getDiskCapacity() -> (used: UInt64, total: UInt64) {
+        do {
+            let url = URL(fileURLWithPath: "/")
+            let values = try url.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey])
+            
+            if let available = values.volumeAvailableCapacity,
+               let total = values.volumeTotalCapacity {
+                let used = UInt64(total - available)
+                return (used, UInt64(total))
+            }
+        } catch {}
+        return (0, 0)
+    }
+    
+    private func formatBytes(_ bytes: UInt64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useGB, .useMB]
+        formatter.countStyle = .binary
+        return formatter.string(fromByteCount: Int64(bytes))
     }
 }
 
