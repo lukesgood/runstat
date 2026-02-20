@@ -12,31 +12,91 @@ class StatusBarController {
         menu = NSMenu()
         setupMenu()
         
-        // Remove menu initially to allow click action
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.target = self
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         
-        // Initial state
         updateDisplay()
         startMonitoring()
     }
     
     private func setupMenu() {
+        menu.removeAllItems()
+        
+        let launchItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchItem.target = self
+        launchItem.state = isLaunchAtLoginEnabled() ? .on : .off
+        menu.addItem(launchItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
     }
     
+    @objc private func toggleLaunchAtLogin() {
+        let enabled = isLaunchAtLoginEnabled()
+        setLaunchAtLogin(!enabled)
+        setupMenu()
+    }
+    
+    private func isLaunchAtLoginEnabled() -> Bool {
+        let launchAgentPath = NSString(string: "~/Library/LaunchAgents/com.runstat.app.plist").expandingTildeInPath
+        return FileManager.default.fileExists(atPath: launchAgentPath)
+    }
+    
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        let launchAgentPath = NSString(string: "~/Library/LaunchAgents/com.runstat.app.plist").expandingTildeInPath
+        
+        if enabled {
+            let plistContent = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>Label</key>
+                <string>com.runstat.app</string>
+                <key>ProgramArguments</key>
+                <array>
+                    <string>/Applications/runstat.app/Contents/MacOS/runstat</string>
+                </array>
+                <key>RunAtLoad</key>
+                <true/>
+                <key>KeepAlive</key>
+                <true/>
+                <key>ProcessType</key>
+                <string>Interactive</string>
+            </dict>
+            </plist>
+            """
+            try? plistContent.write(toFile: launchAgentPath, atomically: true, encoding: .utf8)
+            _ = shell("launchctl load '\(launchAgentPath)'")
+        } else {
+            _ = shell("launchctl unload '\(launchAgentPath)'")
+            try? FileManager.default.removeItem(atPath: launchAgentPath)
+        }
+    }
+    
+    private func shell(_ command: String) -> String {
+        let task = Process()
+        task.launchPath = "/bin/bash"
+        task.arguments = ["-c", command]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.launch()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+    
     @objc private func statusItemClicked() {
         let event = NSApp.currentEvent
         if event?.type == .rightMouseUp {
-            // Right click - show menu
+            setupMenu()
             statusItem.menu = menu
             statusItem.button?.performClick(nil)
             statusItem.menu = nil
         } else {
-            // Left click - toggle view
             isShowingDetails.toggle()
             updateDisplay()
         }
@@ -66,13 +126,19 @@ class StatusBarController {
         
         let attributedString = NSMutableAttributedString(string: displayText)
         
-        // Color based on CPU usage
-        let textColor: NSColor = cpuUsage >= 80 ? NSColor.red : NSColor.black
+        // Color based on CPU usage with three levels
+        let textColor: NSColor
+        if cpuUsage >= 80 {
+            textColor = NSColor.red
+        } else if cpuUsage >= 60 {
+            textColor = NSColor.orange
+        } else {
+            textColor = NSColor.black
+        }
         attributedString.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedString.length))
         
         statusItem.button?.attributedTitle = attributedString
         
-        // Tooltip with detailed info
         statusItem.button?.toolTip = """
         CPU: \(String(format: "%.1f", cpuUsage))%
         Memory: \(formatBytes(memUsed)) / \(formatBytes(memTotal)) (\(String(format: "%.1f", memUsage))%)
@@ -91,29 +157,14 @@ class StatusBarController {
     
     private func getCPUUsage() -> Double {
         var loadAvg = [Double](repeating: 0, count: 3)
-        let result = getloadavg(&loadAvg, 3)
-        if result > 0 {
-            return min(loadAvg[0] * 25, 100) // Normalize for 4 cores
-        }
-        return 0
+        guard getloadavg(&loadAvg, 3) > 0 else { return 0 }
+        let coreCount = Double(ProcessInfo.processInfo.processorCount)
+        return min(loadAvg[0] / coreCount * 100, 100)
     }
     
     private func getMemoryUsage() -> Double {
-        var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
-        
-        let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
-            }
-        }
-        
-        if kerr == KERN_SUCCESS {
-            let totalMem = ProcessInfo.processInfo.physicalMemory
-            let usedMem = UInt64(info.resident_size)
-            return Double(usedMem) / Double(totalMem) * 100
-        }
-        return 0
+        let (used, total) = getMemoryCapacity()
+        return total > 0 ? Double(used) / Double(total) * 100 : 0
     }
     
     private func getMemoryCapacity() -> (used: UInt64, total: UInt64) {
@@ -138,31 +189,25 @@ class StatusBarController {
     }
     
     private func getDiskUsage() -> Double {
-        do {
-            let url = URL(fileURLWithPath: "/")
-            let values = try url.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey])
-            
-            if let available = values.volumeAvailableCapacity,
-               let total = values.volumeTotalCapacity {
-                let used = total - available
-                return Double(used) / Double(total) * 100
-            }
-        } catch {}
-        return 0
+        guard let url = URL(string: "file:///"),
+              let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey]),
+              let available = values.volumeAvailableCapacity,
+              let total = values.volumeTotalCapacity else {
+            return 0
+        }
+        let used = total - available
+        return Double(used) / Double(total) * 100
     }
     
     private func getDiskCapacity() -> (used: UInt64, total: UInt64) {
-        do {
-            let url = URL(fileURLWithPath: "/")
-            let values = try url.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey])
-            
-            if let available = values.volumeAvailableCapacity,
-               let total = values.volumeTotalCapacity {
-                let used = UInt64(total - available)
-                return (used, UInt64(total))
-            }
-        } catch {}
-        return (0, 0)
+        guard let url = URL(string: "file:///"),
+              let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey]),
+              let available = values.volumeAvailableCapacity,
+              let total = values.volumeTotalCapacity else {
+            return (0, 0)
+        }
+        let used = UInt64(total - available)
+        return (used, UInt64(total))
     }
     
     private func formatBytes(_ bytes: UInt64) -> String {

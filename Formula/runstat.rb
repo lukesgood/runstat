@@ -1,7 +1,7 @@
 class Runstat < Formula
   desc "macOS menubar system monitor - CPU usage percentage display"
   homepage "https://github.com/lukesgood/runstat"
-  url "https://github.com/lukesgood/runstat.git", tag: "v1.2.1"
+  url "https://github.com/lukesgood/runstat.git", tag: "v1.2"
   license "MIT"
 
   depends_on xcode: :build

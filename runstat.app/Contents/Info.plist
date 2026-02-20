@@ -9,9 +9,7 @@
     <key>CFBundleName</key>
     <string>runstat</string>
     <key>CFBundleVersion</key>
-    <string>1.1</string>
-    <key>CFBundleIconFile</key>
-    <string>runstat</string>
+    <string>1.2</string>
     <key>LSUIElement</key>
     <true/>
 </dict>

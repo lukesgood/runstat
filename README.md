@@ -17,7 +17,8 @@ macOS menubar system monitor - CPU usage percentage display
 - **Default view**: CPU usage percentage (e.g., CPU 25%)
 - **Detailed view** (click to toggle): CPU 25% | MEM 8.2GB/16GB | DISK 245GB/512GB
 - Color coding:
-  - ⚫ Black: 0-79% (normal)
+  - ⚫ Black: 0-59% (normal)
+  - 🟠 Orange: 60-79% (moderate)
   - 🔴 Red: 80%+ (high usage)
 - Tooltip: Detailed CPU, memory, and disk usage with both capacity and percentage
 
