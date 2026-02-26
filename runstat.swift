@@ -63,8 +63,6 @@ class StatusBarController {
                 </array>
                 <key>RunAtLoad</key>
                 <true/>
-                <key>KeepAlive</key>
-                <true/>
                 <key>ProcessType</key>
                 <string>Interactive</string>
             </dict>
@@ -222,6 +220,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarController: StatusBarController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Prevent multiple instances
+        if NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier!).count > 1 {
+            NSApp.terminate(nil)
+            return
+        }
         statusBarController = StatusBarController()
     }
 }
