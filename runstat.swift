@@ -6,6 +6,11 @@ class StatusBarController {
     private var timer: Timer?
     private var menu: NSMenu
     private var isShowingDetails = false
+    private var cachedStats: (cpu: Double, mem: Double, disk: Double)?
+    private var lastUpdateTime: Date = Date()
+    private var cachedDiskCapacity: (used: UInt64, total: UInt64)?
+    private var lastDiskCheckTime: Date = Date()
+    private var lastDisplayText: String = ""
     
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -113,7 +118,7 @@ class StatusBarController {
     }
     
     private func startMonitoring() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
             self.updateDisplay()
         }
     }
@@ -130,9 +135,13 @@ class StatusBarController {
             displayText = "CPU \(String(format: "%.0f", cpuUsage))%"
         }
         
+        if displayText == lastDisplayText {
+            return
+        }
+        lastDisplayText = displayText
+        
         let attributedString = NSMutableAttributedString(string: displayText)
         
-        // Color based on CPU usage with three levels
         let textColor: NSColor
         if cpuUsage >= 80 {
             textColor = NSColor.red
@@ -155,10 +164,15 @@ class StatusBarController {
     }
     
     private func getSystemStats() -> (cpu: Double, mem: Double, disk: Double) {
-        let cpu = getCPUUsage()
-        let mem = getMemoryUsage()
-        let disk = getDiskUsage()
-        return (cpu, mem, disk)
+        let now = Date()
+        if let cached = cachedStats, now.timeIntervalSince(lastUpdateTime) < 0.5 {
+            return cached
+        }
+        
+        let stats = (getCPUUsage(), getMemoryUsage(), getDiskUsage())
+        cachedStats = stats
+        lastUpdateTime = now
+        return stats
     }
     
     private func getCPUUsage() -> Double {
@@ -206,14 +220,22 @@ class StatusBarController {
     }
     
     private func getDiskCapacity() -> (used: UInt64, total: UInt64) {
+        let now = Date()
+        if let cached = cachedDiskCapacity, now.timeIntervalSince(lastDiskCheckTime) < 5 {
+            return cached
+        }
+        
         guard let url = URL(string: "file:///"),
               let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey, .volumeTotalCapacityKey]),
               let available = values.volumeAvailableCapacity,
               let total = values.volumeTotalCapacity else {
             return (0, 0)
         }
-        let used = UInt64(total - available)
-        return (used, UInt64(total))
+        
+        let result = (UInt64(total - available), UInt64(total))
+        cachedDiskCapacity = result
+        lastDiskCheckTime = now
+        return result
     }
     
     private func formatBytes(_ bytes: UInt64) -> String {
