@@ -28,6 +28,10 @@ class StatusBarController {
         launchItem.state = isLaunchAtLoginEnabled() ? .on : .off
         menu.addItem(launchItem)
         
+        let activityMonitorItem = NSMenuItem(title: "Open Activity Monitor", action: #selector(openActivityMonitor), keyEquivalent: "")
+        activityMonitorItem.target = self
+        menu.addItem(activityMonitorItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
@@ -39,6 +43,10 @@ class StatusBarController {
         let enabled = isLaunchAtLoginEnabled()
         setLaunchAtLogin(!enabled)
         setupMenu()
+    }
+    
+    @objc private func openActivityMonitor() {
+        NSWorkspace.shared.launchApplication("Activity Monitor")
     }
     
     private func isLaunchAtLoginEnabled() -> Bool {
